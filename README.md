@@ -1,5 +1,5 @@
 # Fluidic Backbone prototype code
-This software is intended to provide a controller for low-cost, open-source chemistry equipment. The fluidic backbone can use commanduino or Firmata to control Arduino-based robots using Python scripts. The software provides an object-oriented interace that correlates to the equipment, broken down into module objects with attached device objects. 
+This software is intended to provide a controller for low-cost, open-source chemistry equipment. The fluidic backbone can use commanduino or Firmata to control Arduino-based robots using Python scripts. The software provides an object-oriented interface that correlates to the equipment, broken down into module objects with attached device objects. 
 
 The Manager script coordinates the modules, which in turn control their attached devices. Commands are sent to the Manager thread where they reside in a queue to be dispatched to the required modules. To perform a given task, the Manager will read and interpret the task command dictionary, and then create a new Thread object to run the required module method. The module method will then make calls to its attached devices, which use the commanduino or Firmata library to send strings to the Arduino. The Manager keeps track of running tasks using a Task object, which is also used to pause and resume tasks. 
 
