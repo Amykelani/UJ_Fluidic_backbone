@@ -7,7 +7,7 @@ from queue import Queue
 from threading import Thread, Lock
 from commanduino import CommandManager
 from UJ_FB import web_listener
-from UJ_FB.Modules import syringepump, selectorvalve, reactor, modules
+from UJ_FB.Modules import syringepump, selectorvalve, reactor, modules, camera
 from UJ_FB import fbexceptions
 
 
@@ -63,7 +63,7 @@ class Manager(Thread):
         self.syringes = {}
         self.reactors = {}
         self.flasks = {}
-        self.cameras ={}
+        self.cameras = {}
         self.populate_modules()
         graph_config = self.json_loader("Configs\\module_connections.json")
         self.graph = load_graph(graph_config)
@@ -103,7 +103,9 @@ class Manager(Thread):
                 self.reactors[module_name] = reactor.Reactor(module_name, module_info, self.cmd_mng, self)
             elif module_type == "flask":
                 self.flasks[module_name] = modules.FBFlask(module_name, module_info, self.cmd_mng, self)
-            #todo add module_type == camera
+            elif module_type == "camera":
+                self.cameras[module_name] = camera.VideoRecorder(module_name, module_info, self)
+
         if syringes == 0:
             self.command_gui('write', 'No pumps configured')
             time.sleep(2)
@@ -287,6 +289,8 @@ class Manager(Thread):
             return self.command_syringe(name, command, parameters, command_dict)
         elif mod_type == 'reactor':
             return self.command_reactor(name, command, parameters, command_dict)
+        elif mod_type == 'camera':
+            return self.command_camera(name, command, parameters, command_dict)
         elif mod_type == 'gui':
             message = command_dict['message']
             return self.command_gui(command, message)
@@ -398,6 +402,52 @@ class Manager(Thread):
             self.wait_until_ready()
         self.q.task_done()
         return True
+
+    def command_cameras(self, name, command, parameters, command_dict):
+        __version__ = parameters['__version__']
+        VideoCapture = parameters['VideoCapture()']
+        if command == '__version__':
+            cmd_thread = Thread(target=self.cameras[name]).start_camera, name=name + '__version__',
+                         args=(camera_capture))
+        if cv2.__version__.startswith('2'):
+            PROP_FRAME_WIDTH = cv2.CAP_PROP_FRAME_WIDTH
+            PROP_FRAME_HEIGHT = cv2.CAP_PROP_FRAME_HEIGHT
+        elif cv2.__version__.startswith('3'):
+            PROP_FRAME_WIDTH = cv2.CAP_PROP_FRAME_WIDTH
+            PROP_FRAME_HEIGHT = cv2.CAP_PROP_FRAME_HEIGHT
+        else:
+            PROP_FRAME_WIDTH = cv2.CAP_PROP_FRAME_WIDTH
+            PROP_FRAME_HEIGHT = cv2.CAP_PROP_FRAME_HEIGHT
+
+        camera_capture = cv2.VideoCapture(0)
+        #camera_capture = cv2.VideoCapture(1)
+        #camera_capture = cv2.VideoCapture(2)
+        #camera_capture = cv2.VideoCapture(3)
+        camera_capture.set(PROP_FRAME_WIDTH, 640)
+        camera_capture.set(PROP_FRAME_HEIGHT, 480)
+        #camera_capture.set(PROP_FRAME_WIDTH, 640)
+        #camera_capture.set(PROP_FRAME_HEIGHT, 480)
+        #camera_capture.set(PROP_FRAME_WIDTH, 640)
+        #camera_capture.set(PROP_FRAME_HEIGHT, 480)
+        #camera_capture.set(PROP_FRAME_WIDTH, 640)
+        #camera_capture.set(PROP_FRAME_HEIGHT, 480)
+
+        while True:
+            ret, frame = cap.read()
+            cv2.imshow("preview", frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+    def camera_recording(self):
+        for op in CAMERA_CMDS:
+            if cmd[OP_POS] in op:
+                if op == "SET_RECORDING_CAMERA":
+                    recording_camera = VideoCapture(3)
+                    try:
+                        recording_camera = init(recording_camera)
+                    except TypeError:
+                        self.logger.exception("ERROR! Recording camera {0} is not connected!".format(recording_camera))
+                    self.camera.change_recording_camera(recording_camera)
 
     def wait_until_ready(self):
         with self.interrupt_lock:
@@ -602,3 +652,4 @@ class Task:
     @property
     def module_ready(self):
         return self.module.ready
+
